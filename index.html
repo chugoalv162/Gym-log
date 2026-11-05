@@ -219,7 +219,7 @@ function saveMed(){var v={},any=false;MF.forEach(function(f){var x=document.getE
 function delMed(d){V.cm=null;S.meas=S.meas.filter(function(m){return m.d!==d});save();R()}
 function nz(s){return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"")}
 var STOP=["con","de","del","la","el","al","en","y","a","los","las","un","una","para"];
-function tk(s){return nz(s).split(/[^a-z0-9]+/).filter(function(w){return w&&STOP.indexOf(w)<0})}
+function tk(s){return nz(s).split(/[^a-z0-9]+/).filter(function(w){return w&&STOP.indexOf(w)<0}).map(function(w){return w.length>3?w.replace(/(es|s)$/,""):w})}
 var KW=[["Pierna",/curl femoral|peso muerto|sentadilla|prensa|pierna|cuadricep|femoral|pantorrilla|gemelo|isquio|zancada|abductor|aductor/],["Glúteo",/gluteo|hip thrust/],["Abdomen",/abdom|crunch|plancha|\babs\b/],["Bíceps",/bicep|curl/],["Tríceps",/tricep|frances|patada/],["Hombro",/militar|hombro|lateral|frontal|frente|deltoid|arnold|pajaro|elevacion/],["Espalda",/espalda|jalon|remo|dominada|pullover|dorsal|trapecio/],["Pecho",/pecho|banco|apertura|hammer|press|fondos|cruce/]];
 function classify(name){var t=tk(name),best=null,bs=0;
  Object.keys(CAT).forEach(function(m){exs(m).forEach(function(e){var c=tk(e),o=c.filter(function(w){return t.indexOf(w)>=0}).length;
@@ -242,7 +242,7 @@ function parseLine(line){
  for(var k=0;k<len;k++){var w=ws[k]||ws[ws.length-1]||{w:"",u:"kg"};sets.push({s:ser[k]!=null?ser[k]:(ser.length?ser[ser.length-1]:1),r:reps,w:w.w,u:w.u,n:n.join(", ")})}
  var c=classify(name);return{m:c.m,e:c.e,sets:sets}}
 function openAdd(d){V.add={d:d,t:"",items:null};R()}
-function doParse(){var a=V.add,it=a.t.split("\n").map(function(l){return l.trim()?parseLine(l.trim()):null}).filter(Boolean);
+function doParse(){var a=V.add,it=blocks(a.t).map(parseLine).filter(Boolean);
  if(!it.length){a.err=1;R();return}a.err=0;a.items=it;R()}
 function addV(){var a=V.add,h='<div class="card"><h2>¿Qué hiciste hoy?</h2><div class="row" style="margin-bottom:8px"><span class="mu">Día:</span><input type="date" value="'+a.d+'" onchange="V.add.d=this.value"></div>';
  if(!a.items){return h+'<textarea rows="9" style="width:100%;font:inherit;padding:8px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--tx)" placeholder="Un ejercicio por renglón, por ejemplo:&#10;Banco plano 20 kg más barra 1 serie y 3 series con 10 kg 12 reps&#10;Press militar 4 series 20 lb 12 reps&#10;Máquina hammer 15 kg por lado&#10;Caminadora 2.3 km 33 min" oninput="V.add.t=this.value">'+esc(a.t)+'</textarea>'+(a.err?'<div class="dn" style="margin-top:6px">Escribe al menos un ejercicio.</div>':'')+'<div class="row" style="margin-top:8px"><button class="b" onclick="V.add=null;R()">Cancelar</button><button class="b p" style="flex:1" onclick="doParse()">Analizar</button></div></div>'}
@@ -345,6 +345,16 @@ function okBk(){var o=V.rs;o.logs=o.logs||{};o.meas=o.meas||[];S=o;
  if(!S.cat){S.cat={};Object.keys(CAT).forEach(function(k){S.cat[k]=CAT[k].slice()})}
  if(!S.car)S.car={};if(!S.cl)S.cl=CL0.slice();
  V.rs=null;V.rm="";save();R()}
+function nd(l){return l.replace(/\b(series?|sets?)\s*[:=]\s*(\d+)/gi,"$2 series").replace(/\b(repeticiones|reps?)\s*[:=]\s*(\d+)/gi,"$2 reps").replace(/\bpeso\s*[:=]?\s*(\d+(?:[.,]\d+)?)(\s*(?:kgs?|kilos?|lbs?|libras?)\b)?/gi,function(m,n,u){return n+(u||" kg")}).replace(/\b(?:tiempo|duraci[oó]n)\s*[:=]\s*(\d+(?:[.,]\d+)?)\s*(min\w*)?/gi,function(m,n,u){return n+" "+(u||"min")}).replace(/\bdistancia\s*[:=]\s*(\d+(?:[.,]\d+)?)\s*(km\w*)?/gi,function(m,n,u){return n+" "+(u||"km")})}
+function blocks(t){var out=[],cur=null;
+ function fl(){if(cur){out.push(cur.n+(cur.d.length?" "+cur.d.join(" "):""));cur=null}}
+ t.split("\n").forEach(function(raw){var l=raw.replace(/^\s*(?:[\*\-•·]+\s*|\d+[.)]\s+)/,"").trim();
+  if(!l||/^[a-z]{1,2}$/i.test(l))return;
+  if(/^(series?|sets?|repeticiones|reps?|peso|carga|tiempo|duracion|distancia)\b/.test(nz(l))){if(cur)cur.d.push(nd(l));return}
+  if(!/\d/.test(l)){fl();cur={n:l,d:[]};return}
+  if(cur&&/^\d/.test(l)){cur.d.push(nd(l));return}
+  fl();out.push(l)});
+ fl();return out}
 document.getElementById("dt").textContent=long(TODAY);
 R();
 </script>
