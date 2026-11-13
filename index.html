@@ -178,7 +178,7 @@ function dayV(){
  return h}
 function fillEx(){var m=document.getElementById("sm");if(!m)return;var e=document.getElementById("se");e.innerHTML=exs(m.value).map(function(x){return '<option>'+esc(x)+'</option>'}).join("")}
 function addEx(){var m=document.getElementById("sm").value,n=document.getElementById("sn").value.trim(),e=n||document.getElementById("se").value;if(!e)return;
- if(n&&exs(m).indexOf(n)<0){(S.cat[m]=S.cat[m]||[]).push(n)}
+ e=ensure(m,n?cap(n):e);
  var lt=last(e,V.day),f=lt?lt.sets[0]:{s:4,r:12,w:"",u:"kg",n:""};
  (S.logs[V.day]=S.logs[V.day]||[]).push({m:m,e:e,sets:[{s:f.s,r:f.r,w:f.w,u:f.u,n:f.n}]});save();R()}
 function up(i,j,f,v){var s=S.logs[V.day][i].sets[j];s[f]=(f==="u"||f==="n")?v:(v===""?"":+v);save()}
@@ -221,12 +221,12 @@ function nz(s){return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/
 var STOP=["con","de","del","la","el","al","en","y","a","los","las","un","una","para"];
 function tk(s){return nz(s).split(/[^a-z0-9]+/).filter(function(w){return w&&STOP.indexOf(w)<0}).map(function(w){return w.length>3?w.replace(/(es|s)$/,""):w})}
 var KW=[["Pierna",/curl femoral|peso muerto|sentadilla|prensa|pierna|cuadricep|femoral|pantorrilla|gemelo|isquio|zancada|abductor|aductor/],["Glúteo",/gluteo|hip thrust/],["Abdomen",/abdom|crunch|plancha|\babs\b/],["Bíceps",/bicep|curl/],["Tríceps",/tricep|frances|patada/],["Hombro",/militar|hombro|lateral|frontal|frente|deltoid|arnold|pajaro|elevacion/],["Espalda",/espalda|jalon|remo|dominada|pullover|dorsal|trapecio/],["Pecho",/pecho|banco|apertura|hammer|press|fondos|cruce/]];
-function classify(name){var t=tk(name),best=null,bs=0;
+function classify(name){var fk=findKey(name);if(fk)return fk;var t=tk(name),best=null,bs=0;
  Object.keys(CAT).forEach(function(m){exs(m).forEach(function(e){var c=tk(e),o=c.filter(function(w){return t.indexOf(w)>=0}).length;
   if(o>=1&&o>=Math.min(c.length,t.length)&&(o>=2||c.length===t.length)&&o>bs){bs=o;best={m:m,e:e}}})});
  if(best)return best;
- var n=nz(name);for(var i=0;i<KW.length;i++)if(KW[i][1].test(n))return{m:KW[i][0],e:name};
- return{m:"Otro",e:name}}
+ var n=nz(name);for(var i=0;i<KW.length;i++)if(KW[i][1].test(n))return{m:KW[i][0],e:cap(name)};
+ return{m:"Otro",e:cap(name)}}
 function parseLine(line){
  var cp=cardioParse(line);if(cp)return cp;
  line=line.replace(/^[\s\-•*·\d.)]+(?=[A-Za-zÁÉÍÓÚÑáéíóúñ])/,"");
@@ -250,7 +250,7 @@ function addV(){var a=V.add,h='<div class="card"><h2>¿Qué hiciste hoy?</h2><di
  a.items.forEach(function(x,i){if(x.cardio){h+=cardioPrev(x,i);return}var lt=last(x.e,a.d);
   h+='<div class="card"><div class="row"><span class="th sm">'+ico(iconFor(x.m,x.e))+'</span><select onchange="V.add.items['+i+'].m=this.value">'+Object.keys(CAT).map(function(m){return '<option'+(m===x.m?" selected":"")+'>'+m+'</option>'}).join("")+'</select><input style="flex:1" value="'+esc(x.e)+'" onchange="V.add.items['+i+'].e=this.value"><button class="x" onclick="V.add.items.splice('+i+',1);R()">×</button></div><div class="mu" style="margin-top:6px">'+esc(sum(x.sets))+'</div>'+(lt?'<div class="hint">Última vez ('+short(lt.d)+'): '+esc(sum(lt.sets))+'</div>':'')+'</div>'});
  return h+'<div class="row"><button class="b" onclick="V.add.items=null;R()">‹ Editar texto</button><button class="b p" style="flex:1" onclick="acceptAdd()">✔ Aceptar y agregar</button></div>'}
-function acceptAdd(){var a=V.add;a.items.forEach(function(x){if(x.cardio){if(!String(x.a).trim())return;if(S.cl.indexOf(x.a)<0)S.cl.push(x.a);(S.car[a.d]=S.car[a.d]||[]).push({a:x.a,t:x.t,k:x.k});return}if(!x.e.trim())return;if(exs(x.m).indexOf(x.e)<0)(S.cat[x.m]=S.cat[x.m]||[]).push(x.e);(S.logs[a.d]=S.logs[a.d]||[]).push({m:x.m,e:x.e,sets:x.sets})});
+function acceptAdd(){var a=V.add;a.items.forEach(function(x){if(x.cardio){if(!String(x.a).trim())return;if(S.cl.indexOf(x.a)<0)S.cl.push(x.a);(S.car[a.d]=S.car[a.d]||[]).push({a:x.a,t:x.t,k:x.k});return}if(!x.e.trim())return;x.e=ensure(x.m,cap(x.e.trim()));(S.logs[a.d]=S.logs[a.d]||[]).push({m:x.m,e:x.e,sets:x.sets})});
  save();var d=pd(a.d);V.y=d.getFullYear();V.m=d.getMonth();V.day=a.d;V.tab="cal";V.add=null;R()}
 function exV(){var h=bkCard()+'<p class="mu" style="margin-top:0">Aquí editas la lista que aparece al elegir un ejercicio. Quitar un nombre de la lista no borra tus registros anteriores.</p>';
  Object.keys(CAT).forEach(function(m){var L=S.cat[m]||[];h+='<div class="card" style="border-left:4px solid hsl('+hue(m)+' 55% 50%)"><h3>'+m+'</h3>';
@@ -261,15 +261,15 @@ function exV(){var h=bkCard()+'<p class="mu" style="margin-top:0">Aquí editas l
   else h+='<div style="margin-top:8px"><button class="b" onclick="V.ad=\''+m+'\';V.ed=null;R()">+ Agregar</button></div>';
   h+='</div>'});return h}
 function addCat(m){var n=document.getElementById("ai").value.trim();if(!n)return;var L=S.cat[m]=S.cat[m]||[];
- if(!L.some(function(x){return nz(x)===nz(n)}))L.push(n);V.ad=null;save();R()}
+ if(!L.some(function(x){return kOf(x)===kOf(n)}))L.push(n);V.ad=null;save();R()}
 function delCat(m,i){S.cat[m].splice(i,1);save();R()}
 function renCat(m,i){var n=document.getElementById("ei").value.trim(),L=S.cat[m],old=L[i];if(!n){return}
- var dup=L.some(function(x,j){return j!==i&&nz(x)===nz(n)});
+ var dup=L.some(function(x,j){return j!==i&&kOf(x)===kOf(n)});
  if(document.getElementById("ec").checked&&n!==old)Object.keys(S.logs).forEach(function(d){S.logs[d].forEach(function(x){if(x.m===m&&x.e===old)x.e=n})});
  if(dup)L.splice(i,1);else L[i]=n;V.ed=null;save();R()}
 function editBox(k,i){var x=S.logs[k][i];
  return '<div class="hint" style="padding:8px"><div class="mu" style="margin-bottom:4px">Categoría y nombre</div><div class="row"><select id="em">'+Object.keys(CAT).map(function(m){return '<option'+(m===x.m?" selected":"")+'>'+m+'</option>'}).join("")+'</select><input id="en" style="flex:1" value="'+esc(x.e)+'"></div><label class="mu" style="display:block;margin:6px 0"><input type="checkbox" id="ea" checked> Aplicar también a mis registros anteriores de este ejercicio</label><div class="row"><button class="b p" onclick="saveEE('+i+')">Guardar</button><button class="b" onclick="V.ee=null;V.cd=null;R()">Cancelar</button><span style="flex:1"></span>'+(V.cd===i?'<span class="mu">¿Seguro?</span><button class="b" style="color:var(--dn)" onclick="delEx(\''+k+'\','+i+')">Sí, eliminar</button><button class="b" onclick="V.cd=null;R()">No</button>':'<button class="b" style="color:var(--dn)" onclick="V.cd='+i+';R()">🗑 Eliminar</button>')+'</div></div>'}
-function saveEE(i){var k=V.day,x=S.logs[k][i],m=document.getElementById("em").value,n=document.getElementById("en").value.trim();if(!n)return;
+function saveEE(i){var k=V.day,x=S.logs[k][i],m=document.getElementById("em").value,n=document.getElementById("en").value.trim();if(!n)return;n=ensure(m,n);
  var om=x.m,oe=x.e;
  if(document.getElementById("ea").checked)Object.keys(S.logs).forEach(function(d){S.logs[d].forEach(function(y){if(y.m===om&&y.e===oe){y.m=m;y.e=n}})});
  x.m=m;x.e=n;
@@ -344,7 +344,7 @@ function rdBk(f){if(!f)return;var r=new FileReader();r.onload=function(){try{var
 function okBk(){var o=V.rs;o.logs=o.logs||{};o.meas=o.meas||[];S=o;
  if(!S.cat){S.cat={};Object.keys(CAT).forEach(function(k){S.cat[k]=CAT[k].slice()})}
  if(!S.car)S.car={};if(!S.cl)S.cl=CL0.slice();
- V.rs=null;V.rm="";save();R()}
+ V.rs=null;V.rm="";try{dedupe()}catch(e){}save();R()}
 function nd(l){return l.replace(/\b(series?|sets?)\s*[:=]\s*(\d+)/gi,"$2 series").replace(/\b(repeticiones|reps?)\s*[:=]\s*(\d+)/gi,"$2 reps").replace(/\bpeso\s*[:=]?\s*(\d+(?:[.,]\d+)?)(\s*(?:kgs?|kilos?|lbs?|libras?)\b)?/gi,function(m,n,u){return n+(u||" kg")}).replace(/\b(?:tiempo|duraci[oó]n)\s*[:=]\s*(\d+(?:[.,]\d+)?)\s*(min\w*)?/gi,function(m,n,u){return n+" "+(u||"min")}).replace(/\bdistancia\s*[:=]\s*(\d+(?:[.,]\d+)?)\s*(km\w*)?/gi,function(m,n,u){return n+" "+(u||"km")})}
 function blocks(t){var out=[],cur=null;
  function fl(){if(cur){out.push(cur.n+(cur.d.length?" "+cur.d.join(" "):""));cur=null}}
@@ -355,6 +355,24 @@ function blocks(t){var out=[],cur=null;
   if(cur&&/^\d/.test(l)){cur.d.push(nd(l));return}
   fl();out.push(l)});
  fl();return out}
+function cap(s){return s.charAt(0).toUpperCase()+s.slice(1)}
+function kOf(s){return tk(s).sort().join(" ")}
+function findKey(n){var k=kOf(n),f=null;if(!k)return null;
+ Object.keys(S.cat).forEach(function(m){S.cat[m].forEach(function(e){if(kOf(e)===k&&(!f||(f.m==="Otro"&&m!=="Otro")))f={m:m,e:e}})});
+ if(!f)Object.keys(S.logs).forEach(function(d){S.logs[d].forEach(function(x){if(kOf(x.e)===k&&(!f||(f.m==="Otro"&&x.m!=="Otro")))f={m:x.m,e:x.e}})});
+ return f}
+function nameIn(m,k){var r=null;Object.keys(S.logs).forEach(function(d){S.logs[d].forEach(function(x){if(!r&&x.m===m&&kOf(x.e)===k)r=x.e})});return r}
+function ensure(m,e){var k=kOf(e),L=S.cat[m]=S.cat[m]||[],f=L.filter(function(z){return kOf(z)===k})[0];if(f)return f;var g=nameIn(m,k)||e;L.push(g);return g}
+function dedupe(){var can={};
+ function reg(m,e){var k=kOf(e);if(k){can[m]=can[m]||{};if(!can[m][k])can[m][k]=e}}
+ Object.keys(S.cat).forEach(function(m){S.cat[m].forEach(function(e){reg(m,e)})});
+ Object.keys(S.logs).forEach(function(d){S.logs[d].forEach(function(x){reg(x.m,x.e)})});
+ function dest(m,e){var k=kOf(e);if(!k)return{m:m,e:e};
+  if(m==="Otro"){for(var q in can){if(q!=="Otro"&&can[q][k])return{m:q,e:can[q][k]}}}
+  return{m:m,e:(can[m]&&can[m][k])||e}}
+ Object.keys(S.logs).forEach(function(d){S.logs[d].forEach(function(x){var t=dest(x.m,x.e);x.m=t.m;x.e=t.e})});
+ Object.keys(S.cat).forEach(function(m){var seen={};S.cat[m]=S.cat[m].filter(function(e){var t=dest(m,e);if(t.m!==m||t.e!==e||seen[e])return false;seen[e]=1;return true})})}
+try{dedupe();save()}catch(e){}
 document.getElementById("dt").textContent=long(TODAY);
 R();
 </script>
